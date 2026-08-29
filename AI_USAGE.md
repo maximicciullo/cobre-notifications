@@ -72,7 +72,23 @@ resultado (aceptado tal cual / modificado / descartado).
   explícitamente por el usuario antes de aprobar cada sección); el archivo `DESIGN.md`
   resultante es el entregable final de Task 1.
 
+### 5. Repo de git + exportación a PDF
+- **Tarea**: dejar un repo de git local listo (sin publicar) y generar una versión exportable
+  en PDF de la documentación de diseño, reutilizando lo ya construido.
+- **Prompt (resumen)**: "andá viendo cómo exportamos esto como entregable"; el usuario eligió
+  GitHub (repo con los `.md`, sin exportar nada extra) + un PDF standalone como bonus; pidió
+  explícitamente usar su perfil personal de GitHub (no el de Invenco, que comparte la misma
+  máquina) y aclaró más de una vez que nunca se debe hacer `git push` sin que él lo pida.
+- **Resultado de la IA**: se validó el `.gitconfig`/`.ssh/config` para confirmar que el
+  directorio del challenge no cae bajo el `includeIf` del perfil de Invenco antes de hacer
+  cualquier commit; se hizo `git init` + primer commit local (sin remoto, sin push). Se armó un
+  pipeline (`marked` + los SVGs ya renderizados de Mermaid + Chrome headless
+  `--print-to-pdf`) que convierte `DESIGN.md` + `SECURITY.md` a un PDF con los diagramas
+  embebidos, regenerable en cualquier momento.
+- **Uso dado**: aceptado. El PDF se comparte por fuera del chat (vía archivo local) porque el
+  link de descarga inicial no era accesible para el usuario.
+
 ---
 
 _(Este archivo se sigue actualizando a medida que avanza el desarrollo: implementación del
-código Task 2, y análisis de seguridad Task 3.)_
+código Task 2.)_
