@@ -17,6 +17,7 @@ Original prompt in `challenge/`.
 - **Language/Framework**: Java 21 + Spring Boot 3.5.3 (hexagonal architecture)
 - **Database**: PostgreSQL 16
 - **Delivery**: outbox pattern + scheduled poller, retry with exponential backoff
+- **API docs**: OpenAPI 3 / Swagger UI (springdoc-openapi), generated from the code
 - **Containerization**: Docker + Docker Compose (app + Postgres)
 
 ## How to run
@@ -83,7 +84,18 @@ curl -X POST -H "X-Api-Key: demo-api-key-client002" \
   "http://localhost:8082/notification_events/EVT003/replay"
 ```
 
-### 3. Point it at the real webhook endpoint (once provided)
+### 3. Explore the API docs (Swagger UI)
+
+Interactive docs for the 3 endpoints, generated from the code (springdoc-openapi) so they can
+never drift from the actual implementation:
+
+- **Swagger UI**: http://localhost:8082/swagger-ui/index.html
+- **Raw OpenAPI spec**: http://localhost:8082/v3/api-docs
+
+Click **Authorize** (top right) and paste one of the demo API keys above to try the endpoints
+directly from the browser — Swagger UI sends it as the `X-Api-Key` header on every request.
+
+### 4. Point it at the real webhook endpoint (once provided)
 
 The webhook URL lives in the `subscription` table (`webhook_url` column), seeded by
 `V2__seed_subscriptions.sql` with a placeholder. Once the real destination URL is provided:
@@ -96,7 +108,7 @@ docker compose exec postgres psql -U notifications -d notifications \
 No code change or redeploy is required — the Delivery Worker reads the URL from the database
 on every poll cycle.
 
-### 4. Run the tests (requires Java 21 on the host)
+### 5. Run the tests (requires Java 21 on the host)
 
 ```bash
 # from notification-service/
