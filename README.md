@@ -21,14 +21,45 @@ Original prompt in `challenge/`.
 
 ## How to run
 
+### Prerequisites
+
+- **Docker + Docker Compose** (Docker Desktop on macOS/Windows already includes both;
+  `docker compose version` should print something). This is the only hard requirement —
+  the app, Postgres, and all dependencies run in containers, so **no local Java or Maven
+  install is needed** to run it.
+- **Java 21** — only needed if you want to run the test suite (`./mvnw test`) or the app
+  directly on the host instead of via Docker. The included Maven wrapper (`./mvnw`) downloads
+  Maven itself, so a separate Maven install is never required either way.
+- Ports **8082** (API) and **5432** (Postgres) free on the host. Change the left-hand side of
+  the `ports:` mapping in `docker-compose.yml` if either is already taken.
+
+### 1. Clone and run
+
 ```bash
-cd notification-service
+git clone https://github.com/maximicciullo/cobre-notifications.git
+cd cobre-notifications/notification-service   # the Spring Boot project lives in this subfolder
 docker compose up --build
 ```
+
+Wait for `Started NotificationServiceApplication in ... seconds` in the logs (~10s on a cold
+build) before hitting the API — the container reports "healthy" once Postgres is ready, but
+the app itself needs a few more seconds to finish Flyway + JPA startup.
 
 This starts Postgres, runs the Flyway migrations, and seeds the app with the 10 events from
 `challenge/notification_events.json` plus 3 demo subscriptions (one per client in that file).
 The API is then available at `http://localhost:8082`.
+
+```bash
+# Sanity check
+curl http://localhost:8082/actuator/health   # -> {"status":"UP"}
+```
+
+> **Note:** the Postgres data lives in a named Docker volume, so it **persists across
+> `docker compose down` / `up` cycles** (e.g. a replay you triggered earlier will still show
+> as `pending`/whatever you left it as). Run `docker compose down -v` instead to wipe the
+> volume and start from the original seed data again.
+
+### 2. Call the API
 
 Each seeded client has a fixed API key, sent via the `X-Api-Key` header:
 
@@ -52,7 +83,7 @@ curl -X POST -H "X-Api-Key: demo-api-key-client002" \
   "http://localhost:8082/notification_events/EVT003/replay"
 ```
 
-### How to point it at the real endpoint
+### 3. Point it at the real webhook endpoint (once provided)
 
 The webhook URL lives in the `subscription` table (`webhook_url` column), seeded by
 `V2__seed_subscriptions.sql` with a placeholder. Once the real destination URL is provided:
@@ -65,10 +96,10 @@ docker compose exec postgres psql -U notifications -d notifications \
 No code change or redeploy is required — the Delivery Worker reads the URL from the database
 on every poll cycle.
 
-### Running the tests
+### 4. Run the tests (requires Java 21 on the host)
 
 ```bash
-cd notification-service
+# from notification-service/
 ./mvnw test
 ```
 
