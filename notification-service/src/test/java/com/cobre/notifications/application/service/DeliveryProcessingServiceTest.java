@@ -9,6 +9,7 @@ import com.cobre.notifications.domain.model.DeliveryAttempt;
 import com.cobre.notifications.domain.model.DeliveryStatus;
 import com.cobre.notifications.domain.model.NotificationEvent;
 import com.cobre.notifications.domain.model.Subscription;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -45,7 +46,7 @@ class DeliveryProcessingServiceTest {
     private DeliveryProcessingService service(long backoffBaseSeconds) {
         return new DeliveryProcessingService(
                 deliveryAttemptRepository, notificationEventRepository, subscriptionRepository,
-                webhookSender, clock, backoffBaseSeconds, 20
+                webhookSender, clock, new SimpleMeterRegistry(), backoffBaseSeconds, 20
         );
     }
 

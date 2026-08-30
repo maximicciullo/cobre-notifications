@@ -20,7 +20,8 @@ Original prompt in `challenge/`.
 - **Database**: PostgreSQL 16
 - **Delivery**: outbox pattern + scheduled poller, retry with exponential backoff
 - **API docs**: OpenAPI 3 / Swagger UI (springdoc-openapi), generated from the code
-- **Containerization**: Docker + Docker Compose (app + Postgres)
+- **Observability**: Micrometer business metrics + Prometheus + Grafana (pre-provisioned dashboard)
+- **Containerization**: Docker + Docker Compose (app + Postgres + Prometheus + Grafana)
 
 ## How to run
 
@@ -33,8 +34,9 @@ Original prompt in `challenge/`.
 - **Java 21** — only needed if you want to run the test suite (`./mvnw test`) or the app
   directly on the host instead of via Docker. The included Maven wrapper (`./mvnw`) downloads
   Maven itself, so a separate Maven install is never required either way.
-- Ports **8082** (API) and **5432** (Postgres) free on the host. Change the left-hand side of
-  the `ports:` mapping in `docker-compose.yml` if either is already taken.
+- Ports **8082** (API), **5432** (Postgres), **9090** (Prometheus), and **3000** (Grafana) free
+  on the host. Change the left-hand side of the relevant `ports:` mapping in
+  `docker-compose.yml` if any is already taken.
 
 ### 1. Clone and run
 
@@ -97,7 +99,35 @@ never drift from the actual implementation:
 Click **Authorize** (top right) and paste one of the demo API keys above to try the endpoints
 directly from the browser — Swagger UI sends it as the `X-Api-Key` header on every request.
 
-### 4. Point it at the real webhook endpoint (once provided)
+### 4. Watch it in near real-time (Prometheus + Grafana)
+
+`docker compose up` also starts Prometheus (scraping the app every 5s) and Grafana with a
+dashboard already provisioned — nothing to configure by hand.
+
+- **Grafana dashboard**: http://localhost:3000/d/cobre-notifications (anonymous viewer access
+  enabled; login isn't required — `admin`/`admin` also works if prompted)
+- **Prometheus** (raw metrics/targets): http://localhost:9090
+
+The dashboard has 5 panels, all backed by custom Micrometer metrics emitted from
+`DeliveryProcessingService` / `ReplayService` / `DeliveryBacklogMetrics` (not just generic
+JVM/HTTP metrics):
+
+| Panel | Metric | What it answers |
+|---|---|---|
+| Delivery outcomes (per minute) | `cobre_delivery_attempts_total{outcome}` | success vs. retry-scheduled vs. dead-letter rate |
+| Pending delivery backlog | `cobre_delivery_backlog` | how many deliveries are waiting right now |
+| Replays triggered | `cobre_delivery_replays_total` | self-service replay usage |
+| Self-service API request rate | `http_server_requests_seconds_count` | traffic on the 3 endpoints |
+| Dead-lettered deliveries | `cobre_delivery_attempts_total{outcome="dead_letter"}` | the number a monitoring team would actually alert on |
+
+To see it move live: replay a failed event (step 2 above) and watch the "Delivery outcomes"
+and "Replays triggered" panels update within the next 5-10s poll cycle.
+
+> **Note:** this is a simplified stand-in for the target design's Observability container in
+> `DESIGN.md` §2 (a real deployment would likely add alerting rules and more panels) — but it's
+> the same tools (Prometheus + Grafana), not a mock.
+
+### 5. Point it at the real webhook endpoint (once provided)
 
 The webhook URL lives in the `subscription` table (`webhook_url` column), seeded by
 `V2__seed_subscriptions.sql` with a placeholder. Once the real destination URL is provided:
@@ -110,7 +140,7 @@ docker compose exec postgres psql -U notifications -d notifications \
 No code change or redeploy is required — the Delivery Worker reads the URL from the database
 on every poll cycle.
 
-### 5. Run the tests
+### 6. Run the tests
 
 **Unit tests** (fast, no Docker needed — requires Java 21 on the host):
 

@@ -7,8 +7,11 @@ import com.cobre.notifications.application.port.out.SubscriptionRepositoryPort;
 import com.cobre.notifications.application.port.out.WebhookDeliveryResult;
 import com.cobre.notifications.application.port.out.WebhookSenderPort;
 import com.cobre.notifications.domain.model.DeliveryAttempt;
+import com.cobre.notifications.domain.model.DeliveryStatus;
 import com.cobre.notifications.domain.model.NotificationEvent;
 import com.cobre.notifications.domain.model.Subscription;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +34,9 @@ public class DeliveryProcessingService implements ProcessPendingDeliveriesUseCas
     private final Clock clock;
     private final long backoffBaseSeconds;
     private final int batchSize;
+    private final Counter successCounter;
+    private final Counter retryCounter;
+    private final Counter deadLetterCounter;
 
     public DeliveryProcessingService(
             DeliveryAttemptRepositoryPort deliveryAttemptRepository,
@@ -38,6 +44,7 @@ public class DeliveryProcessingService implements ProcessPendingDeliveriesUseCas
             SubscriptionRepositoryPort subscriptionRepository,
             WebhookSenderPort webhookSender,
             Clock clock,
+            MeterRegistry meterRegistry,
             @Value("${notification.delivery.backoff-base-seconds:30}") long backoffBaseSeconds,
             @Value("${notification.delivery.batch-size:20}") int batchSize
     ) {
@@ -48,6 +55,9 @@ public class DeliveryProcessingService implements ProcessPendingDeliveriesUseCas
         this.clock = clock;
         this.backoffBaseSeconds = backoffBaseSeconds;
         this.batchSize = batchSize;
+        this.successCounter = meterRegistry.counter("cobre.delivery.attempts", "outcome", "success");
+        this.retryCounter = meterRegistry.counter("cobre.delivery.attempts", "outcome", "retry_scheduled");
+        this.deadLetterCounter = meterRegistry.counter("cobre.delivery.attempts", "outcome", "dead_letter");
     }
 
     @Override
@@ -79,9 +89,11 @@ public class DeliveryProcessingService implements ProcessPendingDeliveriesUseCas
 
         if (result.success()) {
             attempt.recordSuccess(result.httpStatus(), now);
+            successCounter.increment();
             log.info("Delivered event {} to client {} (http {})", event.eventId(), event.clientId(), result.httpStatus());
         } else {
             attempt.recordFailure(result.httpStatus(), result.errorMessage(), now, backoffBaseSeconds);
+            (attempt.status() == DeliveryStatus.FAILED ? deadLetterCounter : retryCounter).increment();
             log.warn("Delivery failed for event {} (attempt {}/{}): {}",
                     event.eventId(), attempt.retryCount(), attempt.maxRetries(), result.errorMessage());
         }

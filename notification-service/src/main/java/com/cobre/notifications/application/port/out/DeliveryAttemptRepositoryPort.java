@@ -12,4 +12,7 @@ public interface DeliveryAttemptRepositoryPort {
 
     /** Atomically claims up to {@code limit} due attempts so concurrent workers never race on the same row. */
     List<DeliveryAttempt> findDue(Instant now, int limit);
+
+    /** Number of attempts still PENDING — backs the delivery backlog gauge. */
+    long countPending();
 }

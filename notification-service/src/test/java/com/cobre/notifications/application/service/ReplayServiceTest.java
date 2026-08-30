@@ -7,6 +7,7 @@ import com.cobre.notifications.domain.exception.NotificationEventNotFoundExcepti
 import com.cobre.notifications.domain.exception.ReplayNotAllowedException;
 import com.cobre.notifications.domain.model.DeliveryAttempt;
 import com.cobre.notifications.domain.model.DeliveryStatus;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +33,7 @@ class ReplayServiceTest {
 
     @BeforeEach
     void setUp() {
-        replayService = new ReplayService(deliveryAttemptRepository, queryRepository, clock);
+        replayService = new ReplayService(deliveryAttemptRepository, queryRepository, clock, new SimpleMeterRegistry());
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.cobre.notifications.infrastructure.adapter.out.persistence.repository;
 
+import com.cobre.notifications.domain.model.DeliveryStatus;
 import com.cobre.notifications.infrastructure.adapter.out.persistence.entity.DeliveryAttemptEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +21,6 @@ public interface DeliveryAttemptJpaRepository extends JpaRepository<DeliveryAtte
             FOR UPDATE SKIP LOCKED
             """, nativeQuery = true)
     List<DeliveryAttemptEntity> findDueForUpdate(@Param("now") Instant now, @Param("limit") int limit);
+
+    long countByStatus(DeliveryStatus status);
 }

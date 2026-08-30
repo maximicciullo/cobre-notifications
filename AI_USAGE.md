@@ -200,6 +200,63 @@ resultado (aceptado tal cual / modificado / descartado).
   de integración) y `docker compose up --build` real una vez más para confirmar que el cambio
   de HTTP/1.1 no rompió el flujo real contra un endpoint externo.
 
+### 10. Validación de `NOTES.md` contra lo construido
+- **Tarea**: repasar cada checkbox del `NOTES.md` original contra el código/docs reales (no de
+  memoria) y reportar qué faltaba.
+- **Prompt (resumen)**: "validemos lo que se pide en NOTES.md lo tengamos, y lo que no esté aún
+  decime qué es".
+- **Resultado de la IA**: se verificó cada punto con comandos reales (grep de código, `git log`
+  + `git fetch` para confirmar que el repo ya estaba pusheado en vez de asumirlo) y se
+  actualizaron los checkboxes de `NOTES.md` a `[x]`. Se identificaron 2 gaps reales:
+  observabilidad "near real-time" parcial (solo Actuator genérico, sin métricas de negocio ni
+  dashboard) y ausencia de capturas de pantalla en `AI_USAGE.md`.
+- **Uso dado**: aceptado, sirvió de base para la tarea siguiente (sumar observabilidad).
+
+### 11. Observabilidad: métricas de negocio + Prometheus + Grafana
+- **Tarea**: cerrar el gap de observabilidad identificado arriba.
+- **Prompt (resumen)**: "suma la parte de observabilidad, pero no entiendo cómo lo vamos a
+  mostrar, explicame qué opciones tenemos" → se presentaron 3 opciones (solo JSON de Actuator /
+  Prometheus+Grafana real / dashboard HTML liviano propio) con trade-offs de tiempo/riesgo; el
+  usuario eligió explícitamente la opción completa (Prometheus + Grafana real).
+- **Resultado de la IA**:
+  - Se agregaron métricas de negocio reales con Micrometer: contador de resultados de entrega
+    (`success`/`retry_scheduled`/`dead_letter`) en `DeliveryProcessingService`, contador de
+    replays en `ReplayService`, y un gauge de backlog pendiente (`DeliveryBacklogMetrics`,
+    respaldado por una query nueva `countPending()` en el repositorio).
+  - Se sumaron `prometheus` y `grafana` a `docker-compose.yml`, con Prometheus scrapeando
+    `/actuator/prometheus` cada 5s, y Grafana con datasource + dashboard **pre-provisionados**
+    (5 paneles) para que no haya que configurar nada a mano al levantar el stack.
+  - Se validó todo de punta a punta contra el stack real corriendo (no solo que compile):
+    Prometheus con el target "up", la métrica de backlog visible, Grafana respondiendo y el
+    dashboard accesible sin login (acceso anónimo habilitado). Se dispararon 3 replays reales
+    para que el dashboard tuviera actividad real (no todo en cero) cuando el usuario lo abriera.
+  - A pedido explícito del usuario, esta vez el stack se **dejó corriendo** al final (en las
+    validaciones anteriores siempre se apagaba con `docker compose down` después de verificar)
+    para que el usuario pudiera probarlo él mismo antes de bajarlo.
+- **Uso dado**: aceptado.
+
+**Capturas del stack corriendo en vivo** (tomadas por el usuario, no generadas por la IA):
+
+Grafana — dashboard con actividad real (3 replays disparados momentos antes):
+![Grafana dashboard](./docs/screenshots/grafana-dashboard.png)
+
+Prometheus — target `notification-service` scrapeando OK:
+![Prometheus targets](./docs/screenshots/prometheus-targets.png)
+
+Swagger UI — los 3 endpoints documentados:
+![Swagger UI](./docs/screenshots/swagger-ui.png)
+
+### 12. Capturas de pantalla agregadas a este archivo
+- **Tarea**: cerrar el último gap identificado en la validación de `NOTES.md` (el enunciado
+  pide "prompts, screenshots, etc." y no había ninguna imagen).
+- **Prompt (resumen)**: "antes del commit, saqué 3 screenshots de grafana, prometheus y de
+  swagger, ¿podemos adjuntarlas como pedía el challenge?"
+- **Resultado de la IA**: se ubicaron los 3 archivos en `~/Desktop` (por nombre/timestamp, ya
+  que el usuario no dio la ruta completa), se identificó cuál era cuál mirando el contenido de
+  cada imagen, se copiaron a `docs/screenshots/` dentro del repo con nombres descriptivos, y se
+  embebieron acá arriba con contexto de qué muestra cada una.
+- **Uso dado**: aceptado.
+
 ---
 
 _(Este archivo se sigue actualizando a medida que avanza el desarrollo.)_

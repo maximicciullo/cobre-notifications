@@ -2,6 +2,7 @@ package com.cobre.notifications.infrastructure.adapter.out.persistence;
 
 import com.cobre.notifications.application.port.out.DeliveryAttemptRepositoryPort;
 import com.cobre.notifications.domain.model.DeliveryAttempt;
+import com.cobre.notifications.domain.model.DeliveryStatus;
 import com.cobre.notifications.infrastructure.adapter.out.persistence.entity.DeliveryAttemptEntity;
 import com.cobre.notifications.infrastructure.adapter.out.persistence.repository.DeliveryAttemptJpaRepository;
 import org.springframework.stereotype.Repository;
@@ -45,6 +46,11 @@ public class DeliveryAttemptRepositoryAdapter implements DeliveryAttemptReposito
         claimed.forEach(e -> e.setNextRetryAt(now.plus(CLAIM_LEASE)));
         jpaRepository.saveAll(claimed);
         return claimed.stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public long countPending() {
+        return jpaRepository.countByStatus(DeliveryStatus.PENDING);
     }
 
     private DeliveryAttemptEntity toEntity(DeliveryAttempt attempt) {
