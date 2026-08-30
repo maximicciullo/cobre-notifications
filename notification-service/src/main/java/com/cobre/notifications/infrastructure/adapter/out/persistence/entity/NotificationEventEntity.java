@@ -4,17 +4,11 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "notification_event")
-@Getter
-@Setter
-@NoArgsConstructor
 public class NotificationEventEntity {
 
     @Id
@@ -33,11 +27,34 @@ public class NotificationEventEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    protected NotificationEventEntity() {
+    }
+
     public NotificationEventEntity(String eventId, String clientId, String eventType, String content, Instant createdAt) {
         this.eventId = eventId;
         this.clientId = clientId;
         this.eventType = eventType;
         this.content = content;
         this.createdAt = createdAt;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

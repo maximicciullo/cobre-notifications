@@ -2,19 +2,16 @@ package com.cobre.notifications.infrastructure.adapter.out.webhook;
 
 import com.cobre.notifications.application.port.out.WebhookDeliveryResult;
 import com.cobre.notifications.domain.model.NotificationEvent;
-import com.github.tomakehurst.wiremock.WireMockServer;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.time.Instant;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -22,74 +19,82 @@ import static org.mockito.Mockito.mock;
 
 class WebhookHttpAdapterTest {
 
-    private WireMockServer wireMockServer;
-    private WebhookHttpAdapter adapter;
+    private HttpServer server;
     private final NotificationEvent event = new NotificationEvent(
             "EVT001", "CLIENT001", "credit_card_payment", "Payment received", Instant.parse("2026-08-29T12:00:00Z")
     );
 
-    @BeforeEach
-    void setUp() {
-        wireMockServer = new WireMockServer(options().dynamicPort());
-        wireMockServer.start();
+    @AfterEach
+    void tearDown() {
+        if (server != null) {
+            server.stop(0);
+        }
+    }
 
-        // WebhookUrlValidator (SSRF guard) is unit-tested on its own — stubbed here so this
-        // test can focus on how the adapter maps HTTP outcomes to WebhookDeliveryResult.
+    private WebhookHttpAdapter adapterWithReadTimeout(int readTimeoutMillis) {
         WebhookUrlValidator validator = mock(WebhookUrlValidator.class);
         doNothing().when(validator).validate(anyString());
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(1000);
-        factory.setReadTimeout(500);
+        factory.setReadTimeout(readTimeoutMillis);
         RestClient restClient = RestClient.builder().requestFactory(factory).build();
 
-        adapter = new WebhookHttpAdapter(restClient, validator);
+        return new WebhookHttpAdapter(restClient, validator);
     }
 
-    @AfterEach
-    void tearDown() {
-        wireMockServer.stop();
+    private String startServerReturning(int statusCode, long delayMillis) throws IOException {
+        server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        server.createContext("/webhook", exchange -> {
+            if (delayMillis > 0) {
+                try {
+                    Thread.sleep(delayMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            exchange.sendResponseHeaders(statusCode, -1);
+            exchange.close();
+        });
+        server.start();
+        return "http://localhost:" + server.getAddress().getPort() + "/webhook";
     }
 
     @Test
-    void returnsSuccessOn2xxResponse() {
-        wireMockServer.stubFor(post(urlEqualTo("/webhook"))
-                .willReturn(aResponse().withStatus(200)));
+    void returnsSuccessOn2xxResponse() throws IOException {
+        String url = startServerReturning(200, 0);
 
-        WebhookDeliveryResult result = adapter.send(wireMockServer.baseUrl() + "/webhook", event);
+        WebhookDeliveryResult result = adapterWithReadTimeout(2000).send(url, event);
 
         assertThat(result.success()).isTrue();
         assertThat(result.httpStatus()).isEqualTo(200);
     }
 
     @Test
-    void returnsFailureOn500Response() {
-        wireMockServer.stubFor(post(urlEqualTo("/webhook"))
-                .willReturn(aResponse().withStatus(500)));
+    void returnsFailureOn500Response() throws IOException {
+        String url = startServerReturning(500, 0);
 
-        WebhookDeliveryResult result = adapter.send(wireMockServer.baseUrl() + "/webhook", event);
+        WebhookDeliveryResult result = adapterWithReadTimeout(2000).send(url, event);
 
         assertThat(result.success()).isFalse();
         assertThat(result.httpStatus()).isEqualTo(500);
     }
 
     @Test
-    void returnsFailureOn4xxResponse() {
-        wireMockServer.stubFor(post(urlEqualTo("/webhook"))
-                .willReturn(aResponse().withStatus(404)));
+    void returnsFailureOn4xxResponse() throws IOException {
+        String url = startServerReturning(404, 0);
 
-        WebhookDeliveryResult result = adapter.send(wireMockServer.baseUrl() + "/webhook", event);
+        WebhookDeliveryResult result = adapterWithReadTimeout(2000).send(url, event);
 
         assertThat(result.success()).isFalse();
         assertThat(result.httpStatus()).isEqualTo(404);
     }
 
     @Test
-    void returnsFailureOnTimeout() {
-        wireMockServer.stubFor(post(urlEqualTo("/webhook"))
-                .willReturn(aResponse().withStatus(200).withFixedDelay(2000)));
+    void returnsFailureOnTimeout() throws IOException {
+        String url = startServerReturning(200, 2000);
 
-        WebhookDeliveryResult result = adapter.send(wireMockServer.baseUrl() + "/webhook", event);
+        WebhookDeliveryResult result = adapterWithReadTimeout(300).send(url, event);
 
         assertThat(result.success()).isFalse();
         assertThat(result.httpStatus()).isNull();

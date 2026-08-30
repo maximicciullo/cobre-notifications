@@ -21,10 +21,8 @@ public class OpenApiConfig {
                         .title("Cobre Notification Service — Self-Service API")
                         .version("v1")
                         .description("""
-                                Task 2 of the Cobre notifications challenge: query notification events,
-                                inspect a single event's delivery status, and replay a definitively-failed
-                                delivery. See DESIGN.md and SECURITY.md in the repository root for the
-                                full design rationale and the OWASP mitigations implemented here.
+                                Query notification events, inspect a single event's delivery status,
+                                and replay a definitively-failed delivery.
                                 """)
                         .contact(new Contact().name("Cobre Notification Service")))
                 .addSecurityItem(new SecurityRequirement().addList(API_KEY_SCHEME))
@@ -33,10 +31,6 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.HEADER)
                                 .name("X-Api-Key")
-                                .description("""
-                                        Per-client API key. Resolves server-side to exactly one client_id —
-                                        see ApiKeyAuthFilter and SECURITY.md (A01). Demo keys are seeded in
-                                        V2__seed_subscriptions.sql: demo-api-key-client001/002/003.
-                                        """)));
+                                .description("Per-client API key. Resolves server-side to exactly one client_id.")));
     }
 }

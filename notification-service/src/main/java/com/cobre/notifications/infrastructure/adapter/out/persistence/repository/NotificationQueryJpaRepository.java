@@ -14,9 +14,6 @@ import java.util.Optional;
  * Read-only, composed view spanning notification_event + delivery_attempt. Extends the bare
  * marker {@link Repository} (not JpaRepository) since it only ever reads this joined shape,
  * never the plain entity CRUD surface.
- *
- * Every filter is a bound parameter — never string-concatenated (A03 mitigation, SECURITY.md).
- * clientId is never optional: this is what enforces per-tenant isolation (A01, SECURITY.md).
  */
 public interface NotificationQueryJpaRepository extends Repository<NotificationEventEntity, String> {
 

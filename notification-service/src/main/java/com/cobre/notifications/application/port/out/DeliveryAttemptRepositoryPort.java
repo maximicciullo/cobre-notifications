@@ -10,9 +10,6 @@ public interface DeliveryAttemptRepositoryPort {
     DeliveryAttempt save(DeliveryAttempt attempt);
     Optional<DeliveryAttempt> findByEventId(String eventId);
 
-    /**
-     * Atomically claims up to {@code limit} due attempts so multiple worker instances can poll
-     * concurrently without double-delivering (see DESIGN.md §5 — "safe concurrent polling").
-     */
+    /** Atomically claims up to {@code limit} due attempts so concurrent workers never race on the same row. */
     List<DeliveryAttempt> findDue(Instant now, int limit);
 }

@@ -16,9 +16,8 @@ import java.util.Optional;
 @Repository
 public class DeliveryAttemptRepositoryAdapter implements DeliveryAttemptRepositoryPort {
 
-    // Short lease bumped onto next_retry_at when a row is claimed, so a crashed worker's pick
-    // gets retried by the next poll instead of stuck forever — without holding the Postgres
-    // row lock across the outbound HTTP call itself (see DESIGN.md §5).
+    // Bumped onto next_retry_at when a row is claimed, so a crashed worker's pick gets retried
+    // by the next poll instead of stuck forever — without holding the row lock across the HTTP call.
     private static final Duration CLAIM_LEASE = Duration.ofSeconds(60);
 
     private final DeliveryAttemptJpaRepository jpaRepository;

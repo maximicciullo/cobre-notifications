@@ -19,11 +19,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * The Delivery Worker from DESIGN.md §2/§3 — picks up due attempts, calls the webhook, and
- * records the outcome. Invoked by the scheduler adapter (infrastructure layer), not exposed
- * as a REST endpoint.
- */
 @Service
 public class DeliveryProcessingService implements ProcessPendingDeliveriesUseCase {
 

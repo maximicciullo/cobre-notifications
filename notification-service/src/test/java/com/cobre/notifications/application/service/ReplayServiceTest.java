@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
-/** A01 (Broken Access Control) mitigation tests — see SECURITY.md. */
 class ReplayServiceTest {
 
     private final DeliveryAttemptRepositoryPort deliveryAttemptRepository = mock(DeliveryAttemptRepositoryPort.class);

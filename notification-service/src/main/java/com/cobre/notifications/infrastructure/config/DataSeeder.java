@@ -15,11 +15,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/**
- * Loads challenge/notification_events.json (copied to src/main/resources/seed/) on startup.
- * Plays the role of the Event Consumer from DESIGN.md §2 for demo purposes: real ingestion
- * would come from the platform's event bus, which isn't part of the challenge timebox.
- */
 @Component
 public class DataSeeder implements CommandLineRunner {
 

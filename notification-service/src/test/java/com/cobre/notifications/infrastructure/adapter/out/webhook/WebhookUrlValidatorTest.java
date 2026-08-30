@@ -8,10 +8,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * A10 (SSRF) mitigation tests — see SECURITY.md. Uses IP literals (not hostnames) so the test
- * never depends on real DNS resolution / network access.
- */
+/** Uses IP literals (not hostnames) so the test never depends on real DNS resolution or network access. */
 class WebhookUrlValidatorTest {
 
     private final WebhookUrlValidator validator = new WebhookUrlValidator();

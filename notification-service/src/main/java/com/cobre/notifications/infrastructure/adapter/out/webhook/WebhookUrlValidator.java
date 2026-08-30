@@ -8,9 +8,9 @@ import java.net.URI;
 import java.net.UnknownHostException;
 
 /**
- * SSRF guard (OWASP A10, see SECURITY.md) — runs immediately before every outbound webhook
- * call, not only when a subscription's URL is first saved, to prevent DNS-rebinding (a
- * hostname that resolves to a public IP at registration time but a private one later).
+ * Runs immediately before every outbound webhook call, not only when a subscription's URL is
+ * first saved, to prevent DNS-rebinding (a hostname that resolves to a public IP at
+ * registration time but a private one later).
  */
 @Component
 public class WebhookUrlValidator {

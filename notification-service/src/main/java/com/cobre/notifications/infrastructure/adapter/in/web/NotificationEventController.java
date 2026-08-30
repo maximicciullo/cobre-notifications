@@ -45,7 +45,7 @@ public class NotificationEventController {
     @GetMapping
     @Operation(
             summary = "List the calling client's notification events",
-            description = "Always scoped to the authenticated client (A01 mitigation) — filters are optional."
+            description = "Always scoped to the authenticated client — filters are optional."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Page of matching events"),
@@ -73,7 +73,7 @@ public class NotificationEventController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Event found and owned by the caller"),
             @ApiResponse(responseCode = "401", description = "Missing or invalid X-Api-Key"),
-            @ApiResponse(responseCode = "404", description = "Event doesn't exist, or belongs to another client (A01 — indistinguishable on purpose, see SECURITY.md)"),
+            @ApiResponse(responseCode = "404", description = "Event doesn't exist, or belongs to another client"),
     })
     public NotificationEventResponse getOne(
             @Parameter(description = "e.g. EVT001") @PathVariable String notificationEventId
@@ -91,7 +91,7 @@ public class NotificationEventController {
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "Accepted — reset to PENDING, will be retried on the next poll"),
             @ApiResponse(responseCode = "401", description = "Missing or invalid X-Api-Key"),
-            @ApiResponse(responseCode = "404", description = "Event doesn't exist, or belongs to another client (A01)"),
+            @ApiResponse(responseCode = "404", description = "Event doesn't exist, or belongs to another client"),
             @ApiResponse(responseCode = "409", description = "Event is not currently FAILED — nothing to replay"),
     })
     public ResponseEntity<NotificationEventResponse> replay(

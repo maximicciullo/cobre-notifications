@@ -32,15 +32,14 @@ public class ReplayService implements ReplayNotificationEventUseCase {
     @Override
     @Transactional
     public NotificationEventView replayForClient(String clientId, String eventId) {
-        // Ownership check first (A01) — mismatch and "doesn't exist" both surface as 404,
-        // never a 403 that would confirm another client's event exists (see SECURITY.md).
+        // A mismatched owner and a missing event must look identical to the caller — never
+        // reveal that another client's event exists.
         queryRepository.findView(clientId, eventId)
                 .orElseThrow(() -> new NotificationEventNotFoundException(eventId));
 
         DeliveryAttempt attempt = deliveryAttemptRepository.findByEventId(eventId)
                 .orElseThrow(() -> new NotificationEventNotFoundException(eventId));
 
-        // Throws ReplayNotAllowedException (409) unless the attempt is currently FAILED.
         attempt.resetForReplay(Instant.now(clock));
         deliveryAttemptRepository.save(attempt);
 

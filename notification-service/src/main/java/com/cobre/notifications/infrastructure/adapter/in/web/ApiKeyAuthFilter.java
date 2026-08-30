@@ -12,9 +12,8 @@ import java.io.IOException;
 
 /**
  * Every request to /notification_events/** must carry a valid API key, which resolves
- * server-side to exactly one client_id. This is what makes the A01 ownership checks in
- * NotificationEventQueryService/ReplayService meaningful — the caller can never simply declare
- * which client they are (see SECURITY.md).
+ * server-side to exactly one client_id — the caller can never simply declare which client
+ * they are.
  */
 @Component
 public class ApiKeyAuthFilter extends OncePerRequestFilter {

@@ -14,7 +14,9 @@ Original prompt in `challenge/`.
 
 ## Stack
 
-- **Language/Framework**: Java 21 + Spring Boot 3.5.3 (hexagonal architecture)
+- **Language/Framework**: Java 21 + Spring Boot 3.5.3 (hexagonal architecture) — plain Java
+  and Spring only, no Lombok/H2/WireMock; the one deliberate non-Spring dependency is
+  springdoc-openapi for the Swagger docs below
 - **Database**: PostgreSQL 16
 - **Delivery**: outbox pattern + scheduled poller, retry with exponential backoff
 - **API docs**: OpenAPI 3 / Swagger UI (springdoc-openapi), generated from the code
@@ -115,9 +117,27 @@ on every poll cycle.
 ./mvnw test
 ```
 
-31 tests: domain rules (`DeliveryAttempt`, `BackoffCalculator`), the `ReplayService` A01
-ownership checks, the `WebhookUrlValidator` A10/SSRF checks, the webhook HTTP adapter against a
-WireMock server, and the REST controller via MockMvc.
+39 tests: domain rules (`DeliveryAttempt`, `BackoffCalculator`), the application services
+(`ReplayService`, `NotificationEventQueryService`, `DeliveryProcessingService`), the
+`WebhookUrlValidator` SSRF checks, the webhook HTTP adapter against a plain
+`com.sun.net.httpserver.HttpServer` (JDK-only, no mocking library), and the REST controller via
+MockMvc.
+
+**Coverage report** (JaCoCo, generated automatically by `./mvnw test`):
+
+```bash
+open target/site/jacoco/index.html   # macOS; xdg-open on Linux
+```
+
+| Layer | Instruction coverage | Notes |
+|---|---|---|
+| `domain.policy`, `domain.exception` | 100% | Pure logic, no framework |
+| `application.service` | 89% | Core use cases (delivery, query, replay) |
+| `domain.model` | 78% | `DeliveryAttempt` state machine |
+| `infrastructure...webhook` | 88% | HTTP adapter + SSRF validator |
+| `infrastructure...web` | 82% | Controller, auth filter |
+| `infrastructure...persistence`, `entity`, `config`, `scheduler` | 0% | Only exercised by the manual `docker compose` smoke tests in this README — would need Testcontainers-based integration tests to unit-cover (flagged as a later-stage item) |
+| **Overall** | **52%** (line coverage 48%, branch 62%) | |
 
 ## Status
 

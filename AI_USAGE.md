@@ -121,6 +121,48 @@ resultado (aceptado tal cual / modificado / descartado).
   `docker compose up --build`, y se verificó manualmente el flujo completo (delivery exitoso,
   timeout → retry → dead-letter → replay → 202/409/404) contra la base de datos real.
 
+### 7. Documentación Swagger/OpenAPI
+- **Tarea**: agregar documentación interactiva de los 3 endpoints.
+- **Prompt (resumen)**: "hagamos documentación swagger para los endpoints que tenemos, agregalo
+  también en el readme".
+- **Resultado de la IA**: se agregó `springdoc-openapi` (genera el spec directo del código,
+  nunca se desactualiza), se anotó el controller con `@Operation`/`@ApiResponses`, se configuró
+  el esquema de seguridad `X-Api-Key`, y se validó con `docker compose up --build` real
+  (Swagger UI y `/v3/api-docs` respondiendo 200 con los 3 paths esperados).
+- **Uso dado**: aceptado. Sección nueva en `README.md` con los links y cómo autorizar.
+
+### 8. Revisión de código: dependencias, comentarios, SOLID y cobertura
+- **Tarea**: revisión pedida explícitamente por el usuario con 4 puntos: (1) solo Java/Spring
+  Boot, sin libs externas innecesarias, (2) eliminar comentarios que se notaran generados por
+  IA, (3) seguir lineamientos SOLID/buenas prácticas, (4) reportar la cobertura real de tests.
+- **Prompt (resumen)**: "hagamos una revisión del código" con los 4 puntos listados arriba.
+- **Resultado de la IA**:
+  - Se auditaron las dependencias con grep de uso real: **Lombok**, **H2** y
+    **spring-boot-starter-validation** no se usaban en ningún lado (H2 y validation ni
+    siquiera estaban referenciados; Lombok solo en 3 entidades) — se sacaron. **WireMock**
+    se reemplazó por `com.sun.net.httpserver.HttpServer` (viene con el JDK) en el test del
+    adapter de webhook. Se dejó `springdoc-openapi` como única dependencia no-Spring, por ser
+    la que el usuario pidió explícitamente en el paso anterior.
+  - Se revisaron todos los comentarios de `src/main`: casi todos referenciaban `SECURITY.md`,
+    `DESIGN.md §N` o códigos OWASP (A01/A03/A10) — un patrón típico de comentario "generado"
+    en vez de un comentario orgánico de código. Se reescribieron conservando el "por qué"
+    quedaba (ej: "404 y no 403 para no confirmar que el evento de otro cliente existe") pero
+    sacando las referencias a documentos externos, incluyendo las descripciones de Swagger
+    (que además no deberían apuntar a archivos internos del repo para consumidores reales
+    de la API).
+  - Se encontró y corrigió un code smell real en `DeliveryAttempt.restore()`: llamaba al
+    constructor público (que fija `status=PENDING`) y después pisaba esos valores — se
+    reemplazó por un constructor privado dedicado. Se sacó un `@ExceptionHandler` de
+    `MethodArgumentNotValidException` que había quedado como código muerto tras sacar la
+    dependencia de validation. Se simplificó un converter a lambda.
+  - Se agregó el plugin `jacoco-maven-plugin` y se leyó el reporte real (no estimado):
+    cobertura total 52% instrucciones / 48% líneas / 62% branches. Se detectó que
+    `application.service` estaba en 12% (solo `ReplayService` tenía test) y se agregaron
+    `DeliveryProcessingServiceTest` y `NotificationEventQueryServiceTest`, subiendo esa capa
+    a 89%.
+- **Uso dado**: aceptado. Se validó con `./mvnw clean test` (39/39 tests) y
+  `docker compose up --build` real después de cada tanda de cambios, no solo compilación.
+
 ---
 
 _(Este archivo se sigue actualizando a medida que avanza el desarrollo.)_

@@ -8,7 +8,7 @@ import java.time.Instant;
 /**
  * Mutable — tracks the current delivery state for one {@link NotificationEvent}, 1:1.
  * Owns every state transition (success, failure/backoff, dead-letter, replay) so the rules
- * live in one place instead of being scattered across services (see DESIGN.md §4).
+ * live in one place instead of being scattered across services.
  */
 public class DeliveryAttempt {
 
@@ -31,6 +31,28 @@ public class DeliveryAttempt {
         this.nextRetryAt = createdAt;
     }
 
+    private DeliveryAttempt(
+            String eventId,
+            DeliveryStatus status,
+            int retryCount,
+            int maxRetries,
+            Instant nextRetryAt,
+            Instant lastAttemptedAt,
+            Integer lastHttpStatus,
+            String lastError,
+            Instant completedAt
+    ) {
+        this.eventId = eventId;
+        this.status = status;
+        this.retryCount = retryCount;
+        this.maxRetries = maxRetries;
+        this.nextRetryAt = nextRetryAt;
+        this.lastAttemptedAt = lastAttemptedAt;
+        this.lastHttpStatus = lastHttpStatus;
+        this.lastError = lastError;
+        this.completedAt = completedAt;
+    }
+
     /** Rehydration from storage — used by persistence adapters, not by business code. */
     public static DeliveryAttempt restore(
             String eventId,
@@ -43,15 +65,10 @@ public class DeliveryAttempt {
             String lastError,
             Instant completedAt
     ) {
-        DeliveryAttempt attempt = new DeliveryAttempt(eventId, maxRetries, nextRetryAt);
-        attempt.status = status;
-        attempt.retryCount = retryCount;
-        attempt.nextRetryAt = nextRetryAt;
-        attempt.lastAttemptedAt = lastAttemptedAt;
-        attempt.lastHttpStatus = lastHttpStatus;
-        attempt.lastError = lastError;
-        attempt.completedAt = completedAt;
-        return attempt;
+        return new DeliveryAttempt(
+                eventId, status, retryCount, maxRetries, nextRetryAt,
+                lastAttemptedAt, lastHttpStatus, lastError, completedAt
+        );
     }
 
     public boolean isDue(Instant now) {

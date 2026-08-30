@@ -6,10 +6,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Stands in for the Delivery Worker polling a real queue in the target design (DESIGN.md §2) —
- * here it polls the DB-backed outbox on a fixed delay instead.
- */
 @Component
 public class DeliveryWorkerScheduler {
 

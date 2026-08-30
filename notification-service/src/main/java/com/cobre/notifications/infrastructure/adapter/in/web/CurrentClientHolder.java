@@ -2,8 +2,7 @@ package com.cobre.notifications.infrastructure.adapter.in.web;
 
 /**
  * Holds the authenticated caller's clientId for the duration of one request. Populated by
- * {@link ApiKeyAuthFilter} — never trust a client_id coming from the request body/path itself
- * (that would defeat the whole point of the A01 mitigation, see SECURITY.md).
+ * {@link ApiKeyAuthFilter} — never trust a client_id coming from the request body/path itself.
  */
 public final class CurrentClientHolder {
 

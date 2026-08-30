@@ -26,7 +26,7 @@ public class NotificationEventQueryService implements QueryNotificationEventsUse
     @Override
     public NotificationEventView getByIdForClient(String clientId, String eventId) {
         // Ownership is enforced inside the query itself (WHERE client_id = ...), never checked
-        // after the fact — a mismatch looks identical to "not found" (A01, see SECURITY.md).
+        // after the fact — a mismatch looks identical to "not found".
         return queryRepository.findView(clientId, eventId)
                 .orElseThrow(() -> new NotificationEventNotFoundException(eventId));
     }
