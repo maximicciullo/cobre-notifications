@@ -163,6 +163,43 @@ resultado (aceptado tal cual / modificado / descartado).
 - **Uso dado**: aceptado. Se validó con `./mvnw clean test` (39/39 tests) y
   `docker compose up --build` real después de cada tanda de cambios, no solo compilación.
 
+### 9. Tests de integración (Testcontainers + WireMock)
+- **Tarea**: agregar tests de integración contra infraestructura real, usando WireMock
+  (autorizado explícitamente por el usuario para este caso) para simular el webhook del
+  cliente.
+- **Prompt (resumen)**: "pongamos tests de integración, podemos para ello utilizar wiremock,
+  arma un plan sobre esto y lo valido" → el usuario validó el plan (Testcontainers Postgres +
+  WireMock + separación Surefire/Failsafe) y luego confirmó "sigamos" tras resolver una
+  pregunta sobre si hacían falta JSON files para los stubs (no, se usa la API Java de WireMock
+  y fixtures armadas directo en cada test).
+- **Resultado de la IA / problemas reales encontrados y corregidos**:
+  - Se agregaron 3 clases (`NotificationEventApiIT`, `DeliveryWorkerIT`, `ConcurrentPollingIT`)
+    con Postgres real vía Testcontainers y `maven-failsafe-plugin` para separar `test`
+    (unitarios, sin Docker) de `verify` (incluye integración, necesita Docker).
+  - **Bug real #1**: `@ServiceConnection` puesto en un método estático separado del campo
+    `@Container` no lo reconocía Spring (silenciosamente usaba `localhost:5432` en vez del
+    contenedor) — el patrón correcto es `@Bean @ServiceConnection` dentro de una
+    `@TestConfiguration`, no un método suelto.
+  - **Bug real #2**: con un contenedor `@Container` estático compartido entre clases de test,
+    JUnit paraba el contenedor al terminar cada clase, rompiendo las clases que corrían
+    después en la misma JVM — se resolvió atando el ciclo de vida del contenedor al contexto
+    de Spring (bean) en vez de a JUnit, que es el patrón correcto para reusar contenedores
+    entre varias clases de test.
+  - **Bug real #3, el más interesante**: `DeliveryWorkerIT` fallaba con errores
+    `RST_STREAM: Stream cancelled` en todos los intentos de entrega — el cliente HTTP
+    autodetectado por Spring Boot (`ClientHttpRequestFactoryBuilder.detect()`) negociaba
+    HTTP/2, que WireMock no maneja bien. Se corrigió en el código de **producción**
+    (`RestClientConfig`), no solo para el test: se forzó `SimpleClientHttpRequestFactory`
+    (siempre HTTP/1.1), que además es más apropiado para un caso de uso de webhooks simples
+    donde no se necesita multiplexado HTTP/2.
+  - Se completó la configuración de JaCoCo para que el reporte combine cobertura de
+    `test` + `verify` (antes solo reportaba la corrida unitaria) — la cobertura real subió de
+    52% a **94%** de instrucciones al sumar los tests de integración, con casi todos los
+    paquetes en 86-100%.
+- **Uso dado**: aceptado. Validado con `./mvnw clean verify` (50/50 tests: 39 unitarios + 11
+  de integración) y `docker compose up --build` real una vez más para confirmar que el cambio
+  de HTTP/1.1 no rompió el flujo real contra un endpoint externo.
+
 ---
 
 _(Este archivo se sigue actualizando a medida que avanza el desarrollo.)_

@@ -1,0 +1,6 @@
+notification:
+  delivery:
+    poll-interval-ms: 300
+    backoff-base-seconds: 1
+    batch-size: 20
+    http-timeout-seconds: 3
