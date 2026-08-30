@@ -88,7 +88,39 @@ resultado (aceptado tal cual / modificado / descartado).
 - **Uso dado**: aceptado. El PDF se comparte por fuera del chat (vía archivo local) porque el
   link de descarga inicial no era accesible para el usuario.
 
+### 6. Implementación completa de Task 2 (Spring Boot, hexagonal)
+- **Tarea**: implementar el mecanismo de delivery vía webhook (con retry) y los 3 endpoints
+  self-service (`GET /notification_events`, `GET /{id}`, `POST /{id}/replay`) en arquitectura
+  hexagonal, usando `notification_events.json` como semilla, más las 3 mitigaciones OWASP de
+  `SECURITY.md` implementadas en código real (no solo documentadas).
+- **Prompt (resumen)**: "arranca con el scaffold" — a partir de ahí, generación end-to-end del
+  proyecto (dominio, puertos, servicios, adapters de persistencia/web/webhook/scheduler,
+  migraciones Flyway, seeding, Docker) con verificación real en cada paso (compilar, levantar
+  la app contra Postgres, probar los endpoints con curl, correr el flujo completo de replay,
+  correr el stack entero con `docker compose up --build`).
+- **Resultado de la IA / problemas reales encontrados y corregidos**:
+  - Spring Initializr ya no ofrece Spring Boot 3 (línea actual 4.1.1) — se armó el `pom.xml` a
+    mano fijando **Spring Boot 3.5.3** (última versión 3.x real en Maven Central), decisión
+    consultada y confirmada con el usuario por el riesgo de usar una versión más nueva que mi
+    conocimiento sólido.
+  - Lombok no generaba los getters/setters en compilación: faltaba declarar
+    `annotationProcessorPaths` explícito en el `maven-compiler-plugin` — corregido.
+  - La query nativa de Postgres para el listado fallaba (`could not determine data type of
+    parameter $2`) cuando un filtro venía `null` — Postgres no puede inferir el tipo de un
+    parámetro solo comparado contra `NULL`; se agregaron casts explícitos (`CAST(:x AS
+    timestamptz)`, etc.).
+  - Se estandarizó toda la API en `snake_case` (vía `spring.jackson.property-naming-strategy`)
+    para ser consistente con el `notification_events.json` provisto y con el nombre del
+    endpoint (`/notification_events`).
+  - El validador SSRF (A10) se probó primero manualmente con curl contra el placeholder
+    `example.com` (falló por DNS, no por el guard) y después con tests unitarios usando IPs
+    literales (127.0.0.1, 169.254.169.254, rangos RFC1918) para no depender de red real.
+  - `docker compose up --build` chocó con el puerto 8080 ya ocupado por otro proceso local
+    (ajeno al challenge) — se remapeó a `8082:8080` en `docker-compose.yml`.
+- **Uso dado**: aceptado. Los 31 tests unitarios pasan, el stack completo levanta con
+  `docker compose up --build`, y se verificó manualmente el flujo completo (delivery exitoso,
+  timeout → retry → dead-letter → replay → 202/409/404) contra la base de datos real.
+
 ---
 
-_(Este archivo se sigue actualizando a medida que avanza el desarrollo: implementación del
-código Task 2.)_
+_(Este archivo se sigue actualizando a medida que avanza el desarrollo.)_
